@@ -1,20 +1,15 @@
 {
-  "name": "solana-amm-sdk",
+  "name": "@confirmedwtf/solana-amm-sdk",
   "version": "1.0.0",
   "description": "A powerfully simple SDK to make tokens top trending on Solana via market making.",
   "main": "./src/index.js",
-  "module": "./src/index.mjs",
-  "types": "./src/index.d.ts",
-"files": [
-	"*.js",
-	"src/**/*"
-],
-  "scripts": {
-    "build": "rollup -c",
-    "test": "node test.mjs",
-    "prepare": "npm run build"
-  },
   "type": "module",
+  "files": [
+    "src/**/*"
+  ],
+  "scripts": {
+    "test": "node test.mjs"
+  },
   "keywords": [
     "solana",
     "jito",
@@ -26,8 +21,7 @@
     "node",
     "swap",
     "volume",
-    "makers",
-    "sniper"
+    "makers"
   ],
   "author": "shadowystupidcoder",
   "license": "MIT",
@@ -41,24 +35,10 @@
     "bs58": "^5.0.0",
     "bn.js": "^5.2.1"
   },
-  "devDependencies": {
-    "@rollup/plugin-commonjs": "^24.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
-    "@rollup/plugin-typescript": "^11.0.0",
-    "rollup": "^3.20.0",
-    "typescript": "^5.0.0"
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-"publishConfig": {
-	"access": "public",
-	"registry": "https://registry.npmjs.org/"
-},
   "engines": {
     "node": ">=16"
   }
