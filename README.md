@@ -1,13 +1,34 @@
 # Solana AMM SDK - beta
 
-A powerfully simple SDK to make tokens top trending via market making on Solana.
+A professional Automated Market Maker (AMM) SDK for Solana, leveraging Jito's infrastructure for optimal performance and efficiency.
+Usually code that is able to generate volume and unique makers is complex and hard to understand. 
+This SDK is designed to be easy to understand and use.
+
+
+### Pricing
+
+Simple pricing:
+- 40,000 Lamports per jito bundle
+- 0.05% of transaction size // only for volume generation
+
+
+# Example calculations
+For 10,000 makers the fee is 0.1 SOL since we use 2500 bundles.
+For 10,000 USD volume the fee is 5 USD.
 
 ## Features
-- Cheap, fast, easy
-- Generate configurable randomized trading volume
-- Works for Pump.fun tokens, Moonshot, Raydium, Orca, Meteora, etc.
-- Constant updates and improvements
-- Use this SDK for things like TG bots, swap widgets, etc, and use your own address to collect a fee via jup. (Adding this soon).
+
+- Simplified and efficient bundle creation and management
+- Leverage Jito bundles to execute thousands of high-frequency buy and sell transactions per minute, each from unique wallets
+- Utilize Jito bundles to generate substantial trading volume, ensuring each transaction originates from a distinct wallet
+- Comprehensive AMM protocol support including:
+  - Raydium
+  - Orca
+  - Meteora
+  - Pump.fun
+  - Moonshot
+- Regular maintenance and feature updates
+- Production-ready implementation
 
 ## Installation
 
@@ -72,4 +93,11 @@ Generates trading volume for a token.
   - `jitoTipLamports`: Amount of lamports for Jito tip (default: 10000 if empty)
 
 ## License
-MIT
+
+MIT License
+
+## Support and Contact
+
+- GitHub Issues: [Report a bug](https://github.com/confirmedwtf/solana-amm-sdk/issues)
+- Discord: [Join our community](https://discord.gg/confirmedwtf)
+- Documentation: [Full API docs](https://docs.confirmed.wtf)
