@@ -28,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/confirmedwtf/solana-amm-sdk.git"
+    "url": "https://github.com/@confirmedwtf/solana-amm-sdk.git"
   },
   "dependencies": {
     "@solana/web3.js": "^1.73.0",
