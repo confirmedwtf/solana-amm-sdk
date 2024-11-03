@@ -4,17 +4,6 @@ A professional Automated Market Maker (AMM) SDK for Solana, leveraging Jito's in
 Usually code that is able to generate volume and unique makers is complex and hard to understand. 
 This SDK is designed to be easy to understand and use.
 
-
-### Pricing
-
-Simple pricing:
-- 40,000 Lamports per jito bundle
-- 0.05% of transaction size // only for volume generation
-
-#### Example calculations
-For 10,000 makers the fee is 0.1 SOL since we use 2500 bundles.
-For 10,000 USD volume the fee is 5 USD.
-
 ## Features
 
 - Simplified and efficient bundle creation and management
