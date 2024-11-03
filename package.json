@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A powerfully simple SDK to make tokens top trending on Solana via market making.",
   "main": "./src/index.js",
+  "types": "./src/index.d.ts",
   "type": "module",
   "files": [
     "src/**/*"
@@ -34,6 +35,9 @@
     "@solana/spl-token": "^0.3.8",
     "bs58": "^5.0.0",
     "bn.js": "^5.2.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
   },
   "publishConfig": {
     "access": "public",
