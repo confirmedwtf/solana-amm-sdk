@@ -11,8 +11,7 @@ Simple pricing:
 - 40,000 Lamports per jito bundle
 - 0.05% of transaction size // only for volume generation
 
-
-# Example calculations
+#### Example calculations
 For 10,000 makers the fee is 0.1 SOL since we use 2500 bundles.
 For 10,000 USD volume the fee is 5 USD.
 
@@ -100,4 +99,3 @@ MIT License
 
 - GitHub Issues: [Report a bug](https://github.com/confirmedwtf/solana-amm-sdk/issues)
 - Discord: [Join our community](https://discord.gg/confirmedwtf)
-- Documentation: [Full API docs](https://docs.confirmed.wtf)
