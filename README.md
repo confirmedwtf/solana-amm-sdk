@@ -38,7 +38,7 @@ const tokenMint = new PublicKey("YOUR_TOKEN_MINT");
 const amm = new Amm(connection, wallet);
 
 // Create makers
-await amm.makers(tokenMint, 500, {jitoTipLamports: 100001}); // Creates 500 makers
+await amm.makers(tokenMint, 500, {jitoTipLamports: 10001}); // Creates 500 makers
 
 // Generate volume
 const minSolPerSwap = 0.005; // Minimum SOL per swap
