@@ -4,7 +4,7 @@ import bs58 from "bs58"
 
 
 // setup
-const connection = new Connection("https://rpc.helius.xyz/?api-key=89c0336e-7d82-419a-a17c-509682e038eb")
+const connection = new Connection("YOUR_RPC_URL")
 const payerWallet = Keypair.fromSecretKey(Uint8Array.from( [/* Your keypair */] ))
 // const jupFeeAddress = new PublicKey("YOUR_JUP_FEE_ADDRESS")
 // const feeBPS = 100 // 1%
@@ -13,7 +13,7 @@ const payerWallet = Keypair.fromSecretKey(Uint8Array.from( [/* Your keypair */] 
 // if you need to use a phantom style base58 string private key:
 // const payerWallet = Keypair.fromSecretKey(bs58.decode(/* Your private key */))
 
-const mint = new PublicKey("A2GHnfpZvyeZX5Pr63jdMmo9uYbpaaKqHHuPD5xD2n6v")
+const mint = new PublicKey("YOUR_TOKEN_MINT")
 
 
 // makers
