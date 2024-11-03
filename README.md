@@ -86,5 +86,6 @@ MIT License
 
 ## Support and Contact
 
+- Documentation: [Documentation](https://docs.confirmed.wtf)
 - GitHub Issues: [Report a bug](https://github.com/confirmedwtf/solana-amm-sdk/issues)
 - Discord: [Join our community](https://discord.gg/confirmedwtf)
