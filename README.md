@@ -1,22 +1,6 @@
-# Solana AMM SDK - beta
+# Solana AMM SDK
 
-A professional Automated Market Maker (AMM) SDK for Solana, leveraging Jito's infrastructure for optimal performance and efficiency.
-Usually code that is able to generate volume and unique makers is complex and hard to understand. 
-This SDK is designed to be easy to understand and use.
-
-## Features
-
-- Simplified and efficient bundle creation and management
-- Leverage Jito bundles to execute thousands of high-frequency buy and sell transactions per minute, each from unique wallets
-- Utilize Jito bundles to generate substantial trading volume, ensuring each transaction originates from a distinct wallet
-- Comprehensive AMM protocol support including:
-  - Raydium
-  - Orca
-  - Meteora
-  - Pump.fun
-  - Moonshot
-- Regular maintenance and feature updates
-- Production-ready implementation
+A powerfully simple SDK for market making on Solana.
 
 ## Installation
 
@@ -26,66 +10,53 @@ npm install @confirmedwtf/solana-amm-sdk
 
 ## Usage
 
-### ESM (recommended)
 ```javascript
 import { Amm } from '@confirmedwtf/solana-amm-sdk';
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 
+// Initialize connection and wallet
 const connection = new Connection("YOUR_RPC_URL");
 const wallet = Keypair.fromSecretKey(/* your keypair */);
 const tokenMint = new PublicKey("YOUR_TOKEN_MINT");
 
+// Create AMM instance
 const amm = new Amm(connection, wallet);
 
 // Create makers
-await amm.makers(tokenMint, 500, {jitoTipLamports: 10001}); // Creates 500 makers
+await amm.makers(
+    tokenMint,
+    500,                    // Creates 500 makers
+    { jitoTipLamports: 10001 }
+);
 
 // Generate volume
-const minSolPerSwap = 0.005; // Minimum SOL per swap
-const maxSolPerSwap = 0.006; // Maximum SOL per swap
-const mCapFactor = 1; // Higher = chart goes up, 0 = neutral
-const speedFactor = 1; // Controls trading frequency
-
-await amm.volume( tokenMint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, { jitoTipLamports: 1000 });
+await amm.volume(
+    tokenMint,
+    0.005,                 // Minimum SOL per swap
+    0.006,                 // Maximum SOL per swap
+    1,                     // Market cap factor (Higher = chart goes up, 0 = neutral)
+    1,                     // Speed factor (Controls trading frequency)
+    { jitoTipLamports: 1000 }
+);
 ```
 
-### CommonJS
-```javascript
-const { Amm } = require('solana-amm-sdk');
-// rest of the code is the same as the above
-```
+## Features
 
-## API Reference
+- 🚀 Easy to use
+- 📈 Customizable volume generation
+- ⚡ Jito MEV protection
+- 🔧 Flexible configuration
 
-### `new Amm(connection, payerKeypair)`
-Creates a new AMM instance.
+## Documentation
 
-- `connection`: Solana RPC connection
-- `payerKeypair`: Keypair for the payer account
+For detailed documentation, visit [docs.confirmed.wtf](https://docs.confirmed.wtf)
 
-### `makers(mint, numberOfMakers?)`
-Creates makers for a token.
+## Support
 
-- `mint`: PublicKey of the token mint
-- `numberOfMakers`: Number of makers to create
-
-### `volume(mint, minimumSolPerSwap, maximumSolPerSwap, mCapFactor, speedFactor, options?)`
-Generates trading volume for a token.
-
-- `mint`: PublicKey of the token mint
-- `minimumSolPerSwap`: Minimum SOL per swap
-- `maximumSolPerSwap`: Maximum SOL per swap
-- `mCapFactor`: Market cap factor (higher = chart go up, 0 = neutral (same buy amounts as sell amounts))
-- `speedFactor`: Controls trading frequency
-- `options`: Optional configuration
-  - `jitoTipLamports`: Amount of lamports for Jito tip (default: 10000 if empty)
+- 🐛 [Report Issues](https://github.com/confirmedwtf/solana-amm-sdk/issues)
+- 💬 [Join Discord](https://discord.gg/confirmedwtf)
+- 📚 [Read Docs](https://docs.confirmed.wtf)
 
 ## License
 
-MIT License
-
-## Support and Contact
-
-- Documentation: [Documentation](https://docs.confirmed.wtf)
-- GitHub Issues: [Report a bug](https://github.com/confirmedwtf/solana-amm-sdk/issues)
-- Discord: [Join our community](https://discord.gg/confirmedwtf)
+MIT License - see [LICENSE](LICENSE) for details
