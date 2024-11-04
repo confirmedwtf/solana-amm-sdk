@@ -1,19 +1,20 @@
-import { ComputeBudgetProgram, PublicKey, Keypair, SystemProgram, TransactionInstruction, TransactionMessage, VersionedTransaction} from "@solana/web3.js"
+import { ComputeBudgetProgram, PublicKey, Keypair, SystemProgram, TransactionInstruction } from "@solana/web3.js"
 import bs58 from "bs58"
 import BN from "bn.js"
 import * as spl from "@solana/spl-token"
 import { getRandomJitoAccount, getRandomJitoUrl, sendBundle, createVtxWithOnlyMainSigner, getOwnerAta, feeAccount1, feeAccount2,
-programId, getLookupTables, parseSwap, createVtxWithOnlyMainSignerAndTables, createVtx, jupProgram, wsolMint } from "./common.js"
+programId, getLookupTables, parseSwap, createVtx, jupProgram, wsolMint } from "./common.js"
 
 let balance = 0
 let blockhash = null
 let lastBlockhashRefresh = 0
-const DESIRED_FEE_LAMPORTS = 10000
-const COMPUTE_UNIT_LIMIT = 600_000
-const COMPUTE_UNIT_PRICE = Math.floor((DESIRED_FEE_LAMPORTS * 1_000_000) / COMPUTE_UNIT_LIMIT)
-const compute = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: COMPUTE_UNIT_PRICE })
-const compute2 = ComputeBudgetProgram.setComputeUnitLimit({ units: COMPUTE_UNIT_LIMIT})
+const unitPrice = Math.floor((10000 * 1_000_000) / 600_000)
+const compute = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: unitPrice })
+const compute2 = ComputeBudgetProgram.setComputeUnitLimit({ units: 600_000})
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms ))
+
+
+
 export class Amm {
 constructor(connection, payerKeypair) {
 this.connection = connection
@@ -69,20 +70,16 @@ async swapMakers(direction, mint, signer, blockhash) {
 const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111111111111112"), this.payer.publicKey)
 const tokenAta = await getOwnerAta(mint, this.payer.publicKey)
 const now = Date.now()
-let outAmount
 
 if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 30000) {
 let buyResponse = null
 let sellResponse = null
 let baseAmount = 1
-
-// Keep increasing amount until we find valid routes for both buy and sell
 while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
 try {
 buyResponse = await fetch(
 `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}&slippageBps=10000&swapMode=ExactIn`
 ).then(res => res.json())
-
 if (buyResponse.error === "Could not find any route") {
 buyResponse = null
 baseAmount *= 2
@@ -91,30 +88,21 @@ continue
 }
 
 outAmount = buyResponse.outAmount
-// Use baseAmount * 3 instead of outAmount * 3
 sellResponse = await fetch(
-`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(outAmount * 3).toString()}&slippageBps=10000&swapMode=ExactIn`
+`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(baseAmount * 3).toString()}&slippageBps=10000&swapMode=ExactOut`
 ).then(res => res.json())
-
 if (sellResponse.error === "Could not find any route") {
 sellResponse = null
 baseAmount *= 2
 console.log(`No sell route found, increasing amount to ${baseAmount}`)
 continue
 }
-
 } catch (e) {
 baseAmount *= 2
-console.log(`Error finding routes, increasing amount to ${baseAmount}`)
-}
-}
-
+console.log(`Error finding routes, increasing amount to ${baseAmount}`) } }
 if (!buyResponse || !sellResponse) {
-throw new Error("Could not find valid routes after multiple attempts")
-}
-
+throw new Error("Could not find valid routes after multiple attempts") }
 console.log(`Found valid routes with buy amount: ${baseAmount}, sell amount: ${baseAmount * 3}`)
-
 balance = await this.connection.getBalance(this.payer.publicKey)
 this.jupiterCache.buy = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
 method: 'POST',
@@ -123,8 +111,7 @@ body: JSON.stringify({
 quoteResponse: buyResponse,
 userPublicKey: this.payer.publicKey.toString(),
 wrapAndUnwrapSol: false
-})
-}).then(res => res.json())
+})}).then(res => res.json())
 
 this.jupiterCache.sell = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
 method: 'POST',
@@ -188,12 +175,7 @@ blockhash = (await this.connection.getLatestBlockhash("finalized")).blockhash
 lastBlockhashRefresh = stats.bundleCount }
 const signers = Array(4).fill().map(() => Keypair.generate())
 const fundTx = await this.createFundTx(signers, jitoTipLamports, blockhash)//
-//const sends = await this.connection.sendRawTransaction(fundTx.serialize())//
-//console.log(sends)//
-//await wait(15000)
 const firstBuyTx = await this.swapMakers("buy", mint, signers[0], blockhash)
-//const sends2 = await this.connection.sendRawTransaction(firstBuyTx.serialize())
-//console.log(sends2)
 const secondBuyTx = await this.swapMakers("buy", mint, signers[1], blockhash)
 const thirdBuyTx = await this.swapMakers("buy", mint, signers[2], blockhash)
 const sellTx = await this.swapMakers("buy", mint, signers[3], blockhash)
@@ -342,7 +324,7 @@ Total Stats:
     while (true) {
         try {
             const now = Date.now()
-            if (now - lastHourlyUpdate >= 3600000) { // 1 hour in milliseconds
+            if (now - lastHourlyUpdate >= 3600000) {
                 printHourlyStats()
                 lastHourlyUpdate = now
 			}
