@@ -11,33 +11,22 @@ npm install @confirmedwtf/solana-amm-sdk
 ## Usage
 
 ```javascript
-import { Amm } from '@confirmedwtf/solana-amm-sdk';
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js"
+import Amm from "@confirmedwtf/solana-amm-sdk"
 
-// Initialize connection and wallet
-const connection = new Connection("YOUR_RPC_URL");
-const wallet = Keypair.fromSecretKey(/* your keypair */);
-const tokenMint = new PublicKey("YOUR_TOKEN_MINT");
+const connection = new Connection("https://lauraine-qytyxk-fast-mainnet.helius-rpc.com/")
+const payerWallet = Keypair.fromSecretKey(Uint8Array.from(/* Your keypair */))
+const mint = new PublicKey("Grass7B4RdKfBCjTKgSqnXkqjwiGvQyFbuSCUJr3XXjs")
 
-// Create AMM instance
-const amm = new Amm(connection, wallet);
+const amm = new Amm(connection, payerWallet)
 
-// Create makers
-await amm.makers(
-    tokenMint,
-    500,                    // Creates 500 makers
-    { jitoTipLamports: 10001 }
-);
+await amm.makers(mint, 5000, { jitoTipLamports: 10000 })
 
-// Generate volume
-await amm.volume(
-    tokenMint,
-    0.005,                 // Minimum SOL per swap
-    0.006,                 // Maximum SOL per swap
-    1,                     // Market cap factor (Higher = chart goes up, 0 = neutral)
-    1,                     // Speed factor (Controls trading frequency)
-    { jitoTipLamports: 100000 }
-);
+const minSolPerSwap = 0.005
+const maxSolPerSwap = 0.006
+const mCapFactor = 1
+const speedFactor = 1
+await amm.volume(mint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, {jitoTipLamports: 100000})
 ```
 
 ## Features
