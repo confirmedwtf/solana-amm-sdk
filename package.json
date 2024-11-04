@@ -1,49 +1,46 @@
 {
-  "name": "@confirmedwtf/solana-amm-sdk",
-  "version": "1.0.0",
-  "description": "A powerfully simple SDK to make tokens top trending on Solana via market making.",
-  "main": "./src/index.js",
-  "types": "./src/index.d.ts",
-  "type": "module",
-  "files": [
-    "src/**/*"
-  ],
-  "scripts": {
-    "test": "node test.mjs"
-  },
-  "keywords": [
-    "solana",
-    "jito",
-    "js",
-    "sdk",
-    "blockchain",
-    "program",
-    "bundle",
-    "node",
-    "swap",
-    "volume",
-    "makers"
-  ],
-  "author": "shadowystupidcoder",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/@confirmedwtf/solana-amm-sdk.git"
-  },
-  "dependencies": {
-    "@solana/web3.js": "^1.73.0",
-    "@solana/spl-token": "^0.3.8",
-    "bs58": "^5.0.0",
-    "bn.js": "^5.2.1"
-  },
-  "devDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "engines": {
-    "node": ">=16"
-  }
+	"name": "@confirmedwtf/solana-amm-sdk",
+	"version": "1.0.9",
+	"description": "A powerfully simple SDK for market making on Solana.",
+	"main": "./src/index.js",
+	"types": "./src/index.d.ts",
+	"type": "module",
+	"files": [
+		"src/**/*"
+	],
+	"scripts": {
+		"test": "node test.mjs"
+	},
+	"keywords": [
+		"solana",
+		"jito",
+		"js",
+		"sdk",
+		"blockchain",
+		"program",
+		"bundle",
+		"node",
+		"swap",
+		"volume",
+		"makers"
+	],
+	"author": "shadowystupidcoder",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/confirmedwtf/solana-amm-sdk.git"
+	},
+	"dependencies": {
+		"@solana/web3.js": "^1.73.0",
+		"@solana/spl-token": "^0.3.8",
+		"bs58": "^5.0.0",
+		"bn.js": "^5.2.1"
+	},
+	"devDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org/"
+	}
 }
