@@ -36,7 +36,7 @@ await amm.volume(
     0.006,                 // Maximum SOL per swap
     1,                     // Market cap factor (Higher = chart goes up, 0 = neutral)
     1,                     // Speed factor (Controls trading frequency)
-    { jitoTipLamports: 1000 }
+    { jitoTipLamports: 100000 }
 );
 ```
 
