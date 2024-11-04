@@ -1,4 +1,2 @@
-import { Amm } from './Amm.js'
-
-export { Amm }
-export default Amm
+export { Amm } from './Amm.js';
+export default Amm;
