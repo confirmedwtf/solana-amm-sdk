@@ -1,5 +1,6 @@
 import { Connection, Keypair, PublicKey } from "@solana/web3.js"
-import Amm from "@confirmedwtf/solana-amm-sdk"
+// import { Amm } from "@confirmedwtf/solana-amm-sdk"
+import { Amm } from "./src/Amm.js"
 import bs58 from "bs58"
 
 
