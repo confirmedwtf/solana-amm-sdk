@@ -71,15 +71,17 @@ const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111
 const tokenAta = await getOwnerAta(mint, this.payer.publicKey)
 const now = Date.now()
 
-if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 30000) {
+if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 10000) {
 let buyResponse = null
 let sellResponse = null
-let baseAmount = 1
+let baseAmount = 5
 while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
+let outAmount
 try {
 buyResponse = await fetch(
 `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}&slippageBps=10000&swapMode=ExactIn`
 ).then(res => res.json())
+outAmount = buyResponse.outAmount
 if (buyResponse.error === "Could not find any route") {
 buyResponse = null
 baseAmount *= 2
@@ -87,7 +89,7 @@ console.log(`No buy route found, increasing amount to ${baseAmount}`)
 continue
 }
 sellResponse = await fetch(
-`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(baseAmount * 3).toString()}&slippageBps=10000&swapMode=ExactOut`
+`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(outAmount * 3).toString()}&slippageBps=10000&swapMode=ExactIn`
 ).then(res => res.json())
 if (sellResponse.error === "Could not find any route") {
 sellResponse = null

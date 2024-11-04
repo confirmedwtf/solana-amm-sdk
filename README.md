@@ -12,7 +12,7 @@ npm install @confirmedwtf/solana-amm-sdk
 
 ```javascript
 import { Connection, Keypair, PublicKey } from "@solana/web3.js"
-import Amm from "@confirmedwtf/solana-amm-sdk"
+import { Amm } from "@confirmedwtf/solana-amm-sdk"
 
 const connection = new Connection("https://lauraine-qytyxk-fast-mainnet.helius-rpc.com/")
 const payerWallet = Keypair.fromSecretKey(Uint8Array.from(/* Your keypair */))
