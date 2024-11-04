@@ -86,8 +86,6 @@ baseAmount *= 2
 console.log(`No buy route found, increasing amount to ${baseAmount}`)
 continue
 }
-
-outAmount = buyResponse.outAmount
 sellResponse = await fetch(
 `https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(baseAmount * 3).toString()}&slippageBps=10000&swapMode=ExactOut`
 ).then(res => res.json())
