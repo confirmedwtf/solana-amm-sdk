@@ -12,7 +12,7 @@ const mint = new PublicKey("Grass7B4RdKfBCjTKgSqnXkqjwiGvQyFbuSCUJr3XXjs")
 
 // makers
 const amm = new Amm(connection, payerWallet)
-await amm.makers(mint, 5000, { jitoTipLamports: 10000 })
+await amm.makers(mint, 5000, { jitoTipLamports: 10000 }) // If you don't see your bundles landing on chain, jito tip is too low
 
 // volume
 const minSolPerSwap = 0.005 // sol per swap
