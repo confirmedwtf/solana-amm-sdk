@@ -1,6 +1,6 @@
 {
 	"name": "@confirmedwtf/solana-amm-sdk",
-	"version": "1.0.3",
+	"version": "1.2.0",
 	"description": "A powerfully simple SDK for market making on Solana.",
 	"main": "./src/index.js",
 	"types": "./src/index.d.ts",
