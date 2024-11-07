@@ -71,13 +71,12 @@ async swapMakers(direction, mint, signer, blockhash, excludes) {
 const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111111111111112"), this.payer.publicKey)
 const tokenAta = await getOwnerAta(mint, this.payer.publicKey)
 const now = Date.now()
-
+let baseAmount = 5
 if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 10000) {
 let buyResponse = null
 let sellResponse = null
-let baseAmount = 5
-while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
 let outAmount
+while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
 try {
 buyResponse = await fetch(
 `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}${excludes}&slippageBps=10000&swapMode=ExactIn`
@@ -113,7 +112,6 @@ quoteResponse: buyResponse,
 userPublicKey: this.payer.publicKey.toString(),
 wrapAndUnwrapSol: false
 })}).then(res => res.json())
-
 this.jupiterCache.sell = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
 method: 'POST',
 headers: { 'Content-Type': 'application/json'},
@@ -136,9 +134,11 @@ rawJupResponse = this.jupiterCache.sell
 const tables = await getLookupTables(rawJupResponse.addressLookupTableAddresses, this.connection)
 const rawSwapIx = rawJupResponse.swapInstruction
 const parsedSwapIx = await parseSwap(rawSwapIx)
+let amountBuffer = Buffer.alloc(8)
+new BN(baseAmount.toString()).toArrayLike(Buffer, 'le', 8).copy(amountBuffer, 0)
 let instructionData
-if (direction === "buy") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([1]), Buffer.from(parsedSwapIx.data, 'base64') ]) }
-if (direction === "sell") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([0]), Buffer.from(parsedSwapIx.data, 'base64') ]) }
+if (direction === "buy") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([1]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ]) }
+if (direction === "sell") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([0]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ]) }
 let swapIx = new TransactionInstruction({ keys: [ ...parsedSwapIx.keys.map(acc => ({ pubkey: new PublicKey(acc.pubkey), isSigner: acc.isSigner, isWritable: acc.isWritable })),
 { pubkey: signer.publicKey, isSigner: true, isWritable: true },
 { pubkey: this.payer.publicKey, isSigner: true, isWritable: true },
@@ -160,46 +160,26 @@ return vTx }
 async makers(mint, totalMakersRequired, options = {}) {
 const includeDexes = options.includeDexes || []
 let dexes = [
-"Cropper",
-"Raydium",
-"Openbook",
-"Guacswap",
-"OpenBook V2",
-"Aldrin",
-"Meteora DLMM",
-"Saber (Decimals)",
-"Whirlpool",
-"StepN",
-"Dexlab",
-"Raydium CP",
-"Mercurial",
-"Lifinity V2",
-"Obric V2",
-"Meteora",
-"Phoenix",
-"Token Swap",
-"Helium Network",
-"Sanctum",
+"Cropper", "Raydium",
+"Openbook","Guacswap",
+"OpenBook V2", "Aldrin",
+"Meteora DLMM", "Saber (Decimals)",
+"Whirlpool", "StepN",
+"Dexlab", "Raydium CP",
+"Mercurial", "Lifinity V2",
+"Obric V2","Meteora",
+"Phoenix", "Token Swap",
+"Helium Network", "Sanctum",
 "Moonshot",
-"GooseFX",
-"Penguin",
-"Aldrin V2",
-"Orca V2",
-"Lifinity V1",
-"1DEX",
-"Cropper Legacy",
-"SolFi",
-"Oasis",
-"Saber",
-"Crema",
-"Pump.fun",
-"Raydium CLMM",
-"Bonkswap",
-"Perps",
-"Fox",
-"Saros",
-"Orca V1",
-"FluxBeam",
+"Penguin", "Aldrin V2",
+"Orca V2", "Lifinity V1",
+"1DEX", "Cropper Legacy",
+"SolFi", "Oasis",
+"Saber", "Crema",
+"Pump.fun", "Raydium CLMM",
+"Bonkswap", "Perps",
+"Fox", "Saros",
+"Orca V1", "FluxBeam",
 "Invariant"]
 let excludes
 if (includeDexes.length > 0) {
@@ -255,6 +235,7 @@ async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
         try {
 			const buyUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${amount.toString()}${excludes}&slippageBps=10000&swapMode=ExactIn`
             buyResponse = await fetch(buyUrl).then(res => res.json())
+			console.log(buyResponse)
 } catch(E) { this.log(E.errorCode) }
         if (buyResponse) {
             buyIx = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
@@ -290,9 +271,12 @@ async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
     if (tables) {
         const rawSwapIx = rawJupResponse.swapInstruction
         const parsedSwapIx = await parseSwap(rawSwapIx)
+        let amountBuffer = Buffer.alloc(8)
+        new BN(amount.toString()).toArrayLike(Buffer, 'le', 8).copy(amountBuffer, 0)
         let instructionData = Buffer.concat([
             Buffer.from([4]),
             Buffer.from([direction === "buy" ? 1 : 0]),
+			amountBuffer,
             Buffer.from(parsedSwapIx.data, 'base64')
         ])
         let swapIx = new TransactionInstruction({
@@ -348,7 +332,6 @@ let dexes = [
 "Helium Network",
 "Sanctum",
 "Moonshot",
-"GooseFX",
 "Penguin",
 "Aldrin V2",
 "Orca V2",
@@ -526,7 +509,6 @@ let dexes = [
 "Helium Network",
 "Sanctum",
 "Moonshot",
-"GooseFX",
 "Penguin",
 "Aldrin V2",
 "Orca V2",
@@ -582,7 +564,8 @@ async getSolBalance() {
 
 log(...args) {
     if (!this.disableLogs) {
-        console.log(...args)
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}]`, ...args);
     }
 }
 }

@@ -14,20 +14,21 @@ npm install @confirmedwtf/solana-amm-sdk
 import { Connection, Keypair, PublicKey } from "@solana/web3.js"
 import { Amm } from "@confirmedwtf/solana-amm-sdk"
 
-// setup
-const connection = new Connection("https://lauraine-qytyxk-fast-mainnet.helius-rpc.com/")
-const payerWallet = Keypair.fromSecretKey(Uint8Array.from([/* your keypair */]))
-const mint = new PublicKey("CqMLnuQ8bVSiak5crmhA3PCrwwtKi7R5VzcxJDKArfYN")
+const connection = new Connection("https://rpc.helius.xyz/?api-key=9682e038eb")
+const payerWallet = Keypair.fromSecretKey(Uint8Array.from([132,203,205,98,129,210,181]))
 
-const amm = new Amm(connection, payerWallet, {disableLogs: true})
+const mint = new PublicKey("GDfnEsia2WLAW5t8yx2X5j2mkfA74i5kwGdDuZHt7XmG")
 
-const minSolPerSwap = 0.001
-const maxSolPerSwap = 0.002
+const amm = new Amm(connection, payerWallet, {disableLogs: false})
+
+const minSolPerSwap = 0.001111
+const maxSolPerSwap = 0.001511
 const mCapFactor = 1
 const speedFactor = 1
-await amm.volume(mint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, {includeDexes: ["Raydium"], jitoTipLamports: 100000})
 
-await amm.makers(mint, 5000, {includeDexes: ["Raydium"], jitoTipLamports: 100000 })
+await amm.volume(mint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, {includeDexes: ["Whirlpool", "Raydium", "Meteora", "Orca"], jitoTipLamports: 100000})
+
+await amm.makers(mint, 5000, {includeDexes: ["Whirlpool", "Raydium", "Meteora", "Orca"], jitoTipLamports: 100000 })
 
 const swap = await amm.swap(mint, "buy", 0.001, {jitoTipLamports: 100000})
 ```

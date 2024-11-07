@@ -4,25 +4,26 @@ import { Amm } from "@confirmedwtf/solana-amm-sdk"
 // import bs58 from "bs58"
 
 // setup
-const connection = new Connection("https://lauraine-qytyxk-fast-mainnet.helius-rpc.com/")
-const payerWallet = Keypair.fromSecretKey(Uint8Array.from(/* your keypair */))
+const connection = new Connection("https://rpc.helius.xyz/?api-key=9682e038eb")
+const payerWallet = Keypair.fromSecretKey(Uint8Array.from([132,203,205,98,129,210,181]))
 // if you need to use a phantom style base58 string private key:
 // const payerWallet = Keypair.fromSecretKey(bs58.decode(/* Your private key */))
-const mint = new PublicKey("HUmZBfWc5VqWPPiQ9tCjCLjMao2PDXCYQoY3vcB8pump")
+const mint = new PublicKey("GDfnEsia2WLAW5t8yx2X5j2mkfA74i5kwGdDuZHt7XmG")
 
 // optional disableLogs param. If no disableLogs is provided, logs will be shown.
-const amm = new Amm(connection, payerWallet, {disableLogs: true})
+const amm = new Amm(connection, payerWallet, {disableLogs: false})
 
 // volume generation
-const minSolPerSwap = 0.001 // sol per swap
-const maxSolPerSwap = 0.002 // sol per swap
+const minSolPerSwap = 0.001111 // sol per swap
+const maxSolPerSwap = 0.001511 // sol per swap
 const mCapFactor = 1 // adjust this to make chart go up. higher number = higher chart, you just are left over with some tokens that you can sell after.
 const speedFactor = 1  // Adjust this value to control trading frequency
-// If you want to include a specific DEX, you can add the optional includeDexes parameter. If no includeDexes is provided, all DEXes will be used.
-await amm.volume(mint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, {includeDexes: ["Raydium"], jitoTipLamports: 100000})
 
-// makers spam
-await amm.makers(mint, 5000, {includeDexes: ["Raydium"], jitoTipLamports: 100000 })
+// If you want to include a specific DEX, you can add the optional includeDexes parameter. If no includeDexes is provided, all DEXes will be used.
+await amm.volume(mint, minSolPerSwap, maxSolPerSwap, mCapFactor, speedFactor, {includeDexes: ["Whirlpool", "Raydium", "Meteora", "Orca"], jitoTipLamports: 100000})
+
+// makers
+await amm.makers(mint, 5000, {includeDexes: ["Whirlpool", "Raydium", "Meteora", "Orca"], jitoTipLamports: 100000 })
 
 // single swap
-const swap = await amm.swap(mint, "buy", 0.001, {jitoTipLamports: 100000})
+//const swap = await amm.swap(mint, "buy", 0.001, {jitoTipLamports: 100000})

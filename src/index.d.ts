@@ -1,25 +1,25 @@
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 
-interface AmmOptions {
+export interface AmmOptions {
   disableLogs?: boolean;
 }
 
-interface MakerOptions {
+export interface MakerOptions {
   jitoTipLamports?: number;
   includeDexes?: string[];
 }
 
-interface VolumeOptions {
+export interface VolumeOptions {
   jitoTipLamports?: number;
   includeDexes?: string[];
 }
 
-interface SwapOptions {
+export interface SwapOptions {
   jitoTipLamports?: number;
   includeDexes?: string[];
 }
 
-interface MakerStats {
+export interface MakerStats {
   makersCompleted: number;
   makersRemaining: number;
   bundleCount: number;
@@ -28,18 +28,20 @@ interface MakerStats {
   finished: boolean;
 }
 
+export interface JupiterCache {
+  buy: any | null;
+  sell: any | null;
+  lastUpdateTime: number;
+  tables: any | null;
+}
+
 /**
  * Automated Market Maker class for Solana tokens
  */
 export class Amm {
   connection: Connection;
   payer: Keypair;
-  jupiterCache: {
-    buy: any | null;
-    sell: any | null;
-    lastUpdateTime: number;
-    tables: any | null;
-  };
+  jupiterCache: JupiterCache;
   disableLogs: boolean;
 
   /**
@@ -93,7 +95,7 @@ export class Amm {
     direction: "buy" | "sell",
     amount: number,
     options?: SwapOptions
-  ): Promise<any>;
+  ): Promise<void>;
 
   /**
    * Get token balance for an account
