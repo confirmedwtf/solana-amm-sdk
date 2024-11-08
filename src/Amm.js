@@ -68,162 +68,247 @@ return vTx }
 
 
 async swapMakers(direction, mint, signer, blockhash, excludes) {
-const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111111111111112"), this.payer.publicKey)
-const tokenAta = await getOwnerAta(mint, this.payer.publicKey)
-const now = Date.now()
-let baseAmount = 5
-if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 10000) {
-let buyResponse = null
-let sellResponse = null
-let outAmount
-while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
-try {
-buyResponse = await fetch(
-`https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}${excludes}&slippageBps=10000&swapMode=ExactIn`
-).then(res => res.json())
-outAmount = buyResponse.outAmount
-if (buyResponse.error === "Could not find any route") {
-buyResponse = null
-baseAmount *= 2
-this.log(`No buy route found, increasing amount to ${baseAmount}`)
-continue
-}
-sellResponse = await fetch(
-`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${(outAmount * 3).toString()}${excludes}&slippageBps=10000&swapMode=ExactIn`
-).then(res => res.json())
-if (sellResponse.error === "Could not find any route") {
-sellResponse = null
-baseAmount *= 2
-this.log(`No sell route found, increasing amount to ${baseAmount}`)
-continue
-}
-} catch (e) {
-baseAmount *= 2
-this.log(`Error finding routes, increasing amount to ${baseAmount}`) } }
-if (!buyResponse || !sellResponse) {
-throw new Error("Could not find valid routes after multiple attempts") }
-this.log(`Found valid routes with buy amount: ${baseAmount}, sell amount: ${baseAmount * 3}`)
-balance = await this.connection.getBalance(this.payer.publicKey)
-this.jupiterCache.buy = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
-method: 'POST',
-headers: {'Content-Type': 'application/json'},
-body: JSON.stringify({
-quoteResponse: buyResponse,
-userPublicKey: this.payer.publicKey.toString(),
-wrapAndUnwrapSol: false
-})}).then(res => res.json())
-this.jupiterCache.sell = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json'},
-body: JSON.stringify({
-quoteResponse: sellResponse,
-userPublicKey: this.payer.publicKey.toString(),
-wrapAndUnwrapSol: false,
-})
-}).then(res => res.json())
+    const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111111111111112"), this.payer.publicKey)
+    const tokenAta = await getOwnerAta(mint, this.payer.publicKey)
+    const now = Date.now()
+    let baseAmount = 5
 
-this.jupiterCache.lastUpdateTime = now
-}
+    if (!this.jupiterCache.buy || !this.jupiterCache.sell || now - this.jupiterCache.lastUpdateTime > 10000) {
+        let buyResponse = null
+        let sellResponse = null
+        let outAmount = null
 
-let rawJupResponse
-if (direction === "buy") {
-rawJupResponse = this.jupiterCache.buy
-} else {
-rawJupResponse = this.jupiterCache.sell
+        while ((!buyResponse || !sellResponse) && baseAmount <= 100000) {
+            try {
+                // Try buy route
+                if (!buyResponse) {
+                    const buyUrl = excludes && excludes.length > 0
+                        ? `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}&onlyDirectRoutes=true&directRoutesOnly=true&dexes=${excludes}&slippageBps=10000&swapMode=ExactIn`
+                        : `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${baseAmount}&onlyDirectRoutes=true&directRoutesOnly=true&slippageBps=10000&swapMode=ExactIn`
+
+                    const buyResult = await fetch(buyUrl).then(res => res.json())
+
+                    if (!buyResult.error) {
+                        buyResponse = buyResult
+                        outAmount = buyResult.outAmount
+                        this.log(`Found valid buy route at ${baseAmount} lamports`)
+                    } else {
+                        this.log(`No buy route at ${baseAmount} lamports: ${buyResult.error}`)
+                    }
+                }
+
+                // Try sell route if we have a buy route
+                if (buyResponse && !sellResponse && outAmount) {
+                    const sellAmount = (outAmount * 3).toString()
+                    const sellUrl = excludes && excludes.length > 0
+                        ? `https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${sellAmount}&onlyDirectRoutes=true&directRoutesOnly=true&dexes=${excludes}&slippageBps=10000&swapMode=ExactIn`
+                        : `https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${sellAmount}&onlyDirectRoutes=true&directRoutesOnly=true&slippageBps=10000&swapMode=ExactIn`
+
+                    const sellResult = await fetch(sellUrl).then(res => res.json())
+
+                    if (!sellResult.error) {
+                        sellResponse = sellResult
+                        this.log(`Found valid sell route at ${sellAmount} tokens`)
+                    } else {
+                        this.log(`No sell route at ${sellAmount} tokens: ${sellResult.error}`)
+                        // Reset buy response since we need to try a different amount
+                        buyResponse = null
+                        outAmount = null
+                    }
+                }
+
+                // If either route is missing, increase the base amount
+                if (!buyResponse || !sellResponse) {
+                    baseAmount *= 2
+                    this.log(`Increasing base amount to ${baseAmount} lamports`)
+                }
+
+            } catch (e) {
+                this.log(`Error finding routes: ${e.message}`)
+                baseAmount *= 2
+                this.log(`Increasing base amount to ${baseAmount} lamports`)
+            }
+        }
+
+        if (!buyResponse || !sellResponse) {
+            throw new Error("Could not find valid routes after multiple attempts")
+        }
+
+        this.log(`Successfully found both routes:
+• Buy amount: ${baseAmount} lamports
+• Sell amount: ${outAmount * 3} tokens`)
+
+        balance = await this.connection.getBalance(this.payer.publicKey)
+
+        // Cache the routes
+        this.jupiterCache.buy = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                quoteResponse: buyResponse,
+                userPublicKey: this.payer.publicKey.toString(),
+                wrapAndUnwrapSol: false
+            })
+        }).then(res => res.json())
+
+        this.jupiterCache.sell = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                quoteResponse: sellResponse,
+                userPublicKey: this.payer.publicKey.toString(),
+                wrapAndUnwrapSol: false,
+            })
+        }).then(res => res.json())
+
+        this.jupiterCache.lastUpdateTime = now
+    }
+
+    let rawJupResponse = direction === "buy" ? this.jupiterCache.buy : this.jupiterCache.sell
+    const tables = await getLookupTables(rawJupResponse.addressLookupTableAddresses, this.connection)
+    const rawSwapIx = rawJupResponse.swapInstruction
+    const parsedSwapIx = await parseSwap(rawSwapIx)
+    let amountBuffer = Buffer.alloc(8)
+    new BN(baseAmount.toString()).toArrayLike(Buffer, 'le', 8).copy(amountBuffer, 0)
+    let instructionData
+    if (direction === "buy") {
+        instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([1]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ])
+    }
+    if (direction === "sell") {
+        instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([0]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ])
+    }
+    let swapIx = new TransactionInstruction({
+        keys: [
+            ...parsedSwapIx.keys.map(acc => ({
+                pubkey: new PublicKey(acc.pubkey),
+                isSigner: acc.isSigner,
+                isWritable: acc.isWritable
+            })),
+            { pubkey: signer.publicKey, isSigner: true, isWritable: true },
+            { pubkey: this.payer.publicKey, isSigner: true, isWritable: true },
+            { pubkey: tokenAta, isSigner: false, isWritable: true },
+            { pubkey: wSolAta, isSigner: false, isWritable: true },
+            { pubkey: mint, isSigner: false, isWritable: false },
+            { pubkey: wsolMint, isSigner: false, isWritable: false },
+            { pubkey: feeAccount1, isSigner: false, isWritable: true },
+            { pubkey: feeAccount2, isSigner: false, isWritable: true },
+            { pubkey: jupProgram, isSigner: false, isWritable: false },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            { pubkey: spl.ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+            { pubkey: spl.TOKEN_PROGRAM_ID, isSigner: false, isWritable: false }
+        ],
+        programId: programId,
+        data: instructionData
+    })
+
+    const vTx = await createVtx([compute, compute2, swapIx], [signer, this.payer], tables, blockhash)
+    return vTx
 }
-const tables = await getLookupTables(rawJupResponse.addressLookupTableAddresses, this.connection)
-const rawSwapIx = rawJupResponse.swapInstruction
-const parsedSwapIx = await parseSwap(rawSwapIx)
-let amountBuffer = Buffer.alloc(8)
-new BN(baseAmount.toString()).toArrayLike(Buffer, 'le', 8).copy(amountBuffer, 0)
-let instructionData
-if (direction === "buy") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([1]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ]) }
-if (direction === "sell") { instructionData = Buffer.concat([Buffer.from([2]), Buffer.from([0]), amountBuffer, Buffer.from(parsedSwapIx.data, 'base64') ]) }
-let swapIx = new TransactionInstruction({ keys: [ ...parsedSwapIx.keys.map(acc => ({ pubkey: new PublicKey(acc.pubkey), isSigner: acc.isSigner, isWritable: acc.isWritable })),
-{ pubkey: signer.publicKey, isSigner: true, isWritable: true },
-{ pubkey: this.payer.publicKey, isSigner: true, isWritable: true },
-{ pubkey: tokenAta, isSigner: false, isWritable: true },
-{ pubkey: wSolAta, isSigner: false, isWritable: true },
-{ pubkey: mint, isSigner: false, isWritable: false },
-{ pubkey: wsolMint, isSigner: false, isWritable: false },
-{ pubkey: feeAccount1, isSigner: false, isWritable: true },
-{ pubkey: feeAccount2, isSigner: false, isWritable: true },
-{ pubkey: jupProgram, isSigner: false, isWritable: false },
-{ pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-{ pubkey: spl.ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-{ pubkey: spl.TOKEN_PROGRAM_ID, isSigner: false, isWritable: false } ],
-programId: programId,
-data: instructionData })
-const vTx = await createVtx([compute, compute2, swapIx], [signer, this.payer], tables, blockhash)
-return vTx }
 
 async makers(mint, totalMakersRequired, options = {}) {
-const includeDexes = options.includeDexes || []
-let dexes = [
-"Cropper", "Raydium",
-"Openbook","Guacswap",
-"OpenBook V2", "Aldrin",
-"Meteora DLMM", "Saber (Decimals)",
-"Whirlpool", "StepN",
-"Dexlab", "Raydium CP",
-"Mercurial", "Lifinity V2",
-"Obric V2","Meteora",
-"Phoenix", "Token Swap",
-"Helium Network", "Sanctum",
-"Moonshot",
-"Penguin", "Aldrin V2",
-"Orca V2", "Lifinity V1",
-"1DEX", "Cropper Legacy",
-"SolFi", "Oasis",
-"Saber", "Crema",
-"Pump.fun", "Raydium CLMM",
-"Bonkswap", "Perps",
-"Fox", "Saros",
-"Orca V1", "FluxBeam",
-"Invariant"]
-let excludes
-if (includeDexes.length > 0) {
-const filtered = dexes.filter(dex => !includeDexes.includes(dex))
-excludes = `&excludeDexes=${filtered.join(",")}` }
-if (includeDexes.length === 0) { excludes = "" }
-if (!blockhash) { await this.initializeBlockhash() }
-const testSend = SystemProgram.transfer({ fromPubkey: this.payer.publicKey, toPubkey: new PublicKey("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"), lamports: 1 })
-const testVtx = await createVtxWithOnlyMainSigner([testSend], this.payer, blockhash)
-let testSent = null
-try {
-testSent = await this.connection.sendRawTransaction(testVtx.serialize(), {skipPreflight: false, preflightCommitment: "finalized"}) }
-catch(E) { this.log("Blockhash test failed, try a different commitment or RPC. Your bundles will NOT land right now no matter what size Jito tip.") }
-if (testSent) { this.log("Blockhash test OK. Your bundles should land now.") }
-let jitoTipLamports = options.jitoTipLamports || 0.0001 * 10 ** 9
-let stats = { makersCompleted: 0, makersRemaining: totalMakersRequired, bundleCount: 0, latestBundleId: null }
-this.log("Starting makers loop. Total required:", totalMakersRequired)
-while (stats.makersCompleted < totalMakersRequired) {
-try {
-if (stats.bundleCount - lastBlockhashRefresh >= 10) {
-blockhash = (await this.connection.getLatestBlockhash("finalized")).blockhash
-lastBlockhashRefresh = stats.bundleCount }
-const signers = Array(4).fill().map(() => Keypair.generate())
-const fundTx = await this.createFundTx(signers, jitoTipLamports, blockhash)//
-const firstBuyTx = await this.swapMakers("buy", mint, signers[0], blockhash, excludes)
-const secondBuyTx = await this.swapMakers("buy", mint, signers[1], blockhash, excludes)
-const thirdBuyTx = await this.swapMakers("buy", mint, signers[2], blockhash, excludes)
-const sellTx = await this.swapMakers("buy", mint, signers[3], blockhash, excludes)
-const send = await sendBundle([
-bs58.encode(fundTx.serialize()),
-bs58.encode(firstBuyTx.serialize()),
-bs58.encode(secondBuyTx.serialize()),
-bs58.encode(thirdBuyTx.serialize()),
-bs58.encode(sellTx.serialize())], getRandomJitoUrl())
-if (send && send.result) {
-stats.bundleCount++
-stats.latestBundleId = send.result
-stats.makersCompleted += 4
-stats.makersRemaining = totalMakersRequired - stats.makersCompleted
-stats.solBalance = balance / 10 ** 9}
-this.log("Stats:", stats)
-} catch (err) { console.error("Error in makers:", err) } }
-stats['finished'] = true
-return stats }
+    const includeDexes = options.includeDexes || []
+    let dexes = includeDexes.length > 0 ? includeDexes.join(",") : ""
+    const solBalance = await this.getSolBalance()
+    const jitoTipLamports = options.jitoTipLamports || 0.0001 * 10 ** 9
+
+    // Initial setup logging
+    console.log(`
+=== Makers Bot Configuration ===
+Token: ${mint.toString()}
+Wallet: ${this.payer.publicKey.toString()}
+SOL Balance: ${solBalance.toFixed(4)} SOL
+
+Parameters:
+• Total Makers Required: ${totalMakersRequired}
+• Jito Tip: ${jitoTipLamports/1e9} SOL
+${includeDexes.length > 0 ? `• Enabled DEXes: ${includeDexes.join(", ")}` : '• Using all available DEXes'}
+===========================
+`)
+
+    if (!blockhash) { await this.initializeBlockhash() }
+
+    // Test blockhash
+    const testSend = SystemProgram.transfer({
+        fromPubkey: this.payer.publicKey,
+        toPubkey: new PublicKey("5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1"),
+        lamports: 1
+    })
+    const testVtx = await createVtxWithOnlyMainSigner([testSend], this.payer, blockhash)
+
+    try {
+        await this.connection.sendRawTransaction(testVtx.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: "finalized"
+        })
+        console.log("✓ Blockhash test successful - bundles should land")
+    } catch(E) {
+        console.log("✗ Blockhash test failed - try a different RPC endpoint")
+        return
+    }
+
+    let stats = {
+        makersCompleted: 0,
+        makersRemaining: totalMakersRequired,
+        bundleCount: 0,
+        latestBundleId: null
+    }
+
+    console.log("\nStarting makers loop...")
+
+    while (stats.makersCompleted < totalMakersRequired) {
+        try {
+            if (stats.bundleCount - lastBlockhashRefresh >= 10) {
+                blockhash = (await this.connection.getLatestBlockhash("finalized")).blockhash
+                lastBlockhashRefresh = stats.bundleCount
+            }
+
+            const signers = Array(4).fill().map(() => Keypair.generate())
+            const fundTx = await this.createFundTx(signers, jitoTipLamports, blockhash)
+            const firstBuyTx = await this.swapMakers("buy", mint, signers[0], blockhash, dexes)
+            const secondBuyTx = await this.swapMakers("buy", mint, signers[1], blockhash, dexes)
+            const thirdBuyTx = await this.swapMakers("buy", mint, signers[2], blockhash, dexes)
+            const sellTx = await this.swapMakers("buy", mint, signers[3], blockhash, dexes)
+
+            const bundle = await sendBundle([
+                bs58.encode(fundTx.serialize()),
+                bs58.encode(firstBuyTx.serialize()),
+                bs58.encode(secondBuyTx.serialize()),
+                bs58.encode(thirdBuyTx.serialize()),
+                bs58.encode(sellTx.serialize())
+            ], getRandomJitoUrl())
+
+            if (bundle && bundle.result) {
+                stats.bundleCount++
+                stats.latestBundleId = bundle.result
+                stats.makersCompleted += 4
+                stats.makersRemaining = totalMakersRequired - stats.makersCompleted
+                const currentSolBalance = await this.getSolBalance()
+
+                console.log(`
+[${new Date().toLocaleTimeString()}] Bundle #${stats.bundleCount}
+• Makers Added: 4
+• Progress: ${stats.makersCompleted}/${totalMakersRequired}
+• Remaining: ${stats.makersRemaining}
+• SOL Balance: ${currentSolBalance.toFixed(4)} SOL
+• Bundle: ${bundle.result}`)
+            }
+        } catch (err) {
+            console.error("Error in makers:", err.message)
+            await wait(5000)
+        }
+    }
+
+    console.log(`
+=== Makers Complete ===
+• Total Bundles: ${stats.bundleCount}
+• Total Makers: ${stats.makersCompleted}
+• Final SOL Balance: ${(await this.getSolBalance()).toFixed(4)} SOL
+==================
+`)
+
+    stats['finished'] = true
+    return stats
+}
 
 async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
     const wSolAta = await getOwnerAta(new PublicKey("So11111111111111111111111111111111111111112"), this.payer.publicKey)
@@ -232,10 +317,14 @@ async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
     let sellIx
     if (direction === "buy") {
         let buyResponse
+		let buyUrl
         try {
-			const buyUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${amount.toString()}${excludes}&slippageBps=10000&swapMode=ExactIn`
-            buyResponse = await fetch(buyUrl).then(res => res.json())
-			console.log(buyResponse)
+			if (excludes && excludes.length > 0) {
+				buyUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${amount.toString()}&onlyDirectRoutes=true&directRoutesOnly=true&dexes=${excludes}&slippageBps=10000&swapMode=ExactIn`
+			} else {
+				buyUrl = `https://quote-api.jup.ag/v6/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${mint.toString()}&amount=${amount.toString()}&onlyDirectRoutes=true&directRoutesOnly=true&slippageBps=10000&swapMode=ExactIn`
+			}
+           buyResponse = await fetch(buyUrl).then(res => res.json())
 } catch(E) { this.log(E.errorCode) }
         if (buyResponse) {
             buyIx = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
@@ -250,7 +339,14 @@ async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
         }
     } else if (direction === "sell") {
         const fixedSellAmount = (amount).toFixed(0)
-        const sellResponse = await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${fixedSellAmount}${excludes}&slippageBps=10000&swapMode=ExactOut`).then(res => res.json())
+		let sellUrl
+		try {
+		if (excludes && excludes.length > 0) {
+			sellUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${fixedSellAmount}&onlyDirectRoutes=true&directRoutesOnly=true&dexes=${excludes}&slippageBps=10000&swapMode=ExactOut`
+		} else {
+			sellUrl = `https://quote-api.jup.ag/v6/quote?inputMint=${mint.toString()}&outputMint=So11111111111111111111111111111111111111112&amount=${fixedSellAmount}&onlyDirectRoutes=true&directRoutesOnly=true&slippageBps=10000&swapMode=ExactOut`
+		}	 } catch {}
+        const sellResponse = await fetch(sellUrl).then(res => res.json())
         sellIx = await fetch('https://quote-api.jup.ag/v6/swap-instructions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json'},
@@ -309,62 +405,11 @@ async swapVolume(direction, mint, amount, blockhash, signer, excludes) {
 }
 
 async volume(mint, minSolAmount, maxSolAmount, mCapFactor, speedFactor = 10, options = {}) {
-const includeDexes = options.includeDexes || []
-let dexes = [
-"Cropper",
-"Raydium",
-"Openbook",
-"Guacswap",
-"OpenBook V2",
-"Aldrin",
-"Meteora DLMM",
-"Saber (Decimals)",
-"Whirlpool",
-"StepN",
-"Dexlab",
-"Raydium CP",
-"Mercurial",
-"Lifinity V2",
-"Obric V2",
-"Meteora",
-"Phoenix",
-"Token Swap",
-"Helium Network",
-"Sanctum",
-"Moonshot",
-"Penguin",
-"Aldrin V2",
-"Orca V2",
-"Lifinity V1",
-"1DEX",
-"Cropper Legacy",
-"SolFi",
-"Oasis",
-"Saber",
-"Crema",
-"Pump.fun",
-"Raydium CLMM",
-"Bonkswap",
-"Perps",
-"Fox",
-"Saros",
-"Orca V1",
-"FluxBeam",
-"Invariant"]
-let excludes
-if (includeDexes.length > 0) {
-const filtered = dexes.filter(dex => !includeDexes.includes(dex))
-excludes = `&excludeDexes=${filtered.join(",")}` }
-if (includeDexes.length === 0) { excludes = "" }
+    const includeDexes = options.includeDexes || []
+    let dexes = includeDexes.length > 0 ? includeDexes.join(",") : ""
     const jitoTipLamports = options.jitoTipLamports || 0.001 * 10 ** 9
-    let totalNetVolume = 0
-    let totalRealVolume = 0
-    let tradesUntilNextSell = Math.floor(Math.random() * 3) + 1
-    let startTime = Date.now()
-    let tradeCount = 0
-    let buyCount = 0
-    let sellCount = 0
-    let lastHourlyUpdate = startTime
+    const solBalance = await this.getSolBalance()
+
     const avgSolPerSwap = (minSolAmount + maxSolAmount) / 2
     const avgDelaySeconds = (5000 + 10000/2) / 1000 / speedFactor
     const expectedSwapsPerHour = (3600 / avgDelaySeconds)
@@ -372,173 +417,104 @@ if (includeDexes.length === 0) { excludes = "" }
     const avgSellPercentage = (0.5 + (0.5 * 0.5 * (1/mCapFactor)))
     const expectedSellVolume = expectedBuyVolume * avgSellPercentage
     const expectedHourlyVolume = expectedBuyVolume + expectedSellVolume
-    this.log(`
-Initial Projections (per hour):
-Avg Delay Between Trades: ${avgDelaySeconds.toFixed(2)} seconds
-Expected Trades: ${expectedSwapsPerHour.toFixed(0)} trades
-Expected Buy Volume: ${expectedBuyVolume.toFixed(4)} SOL
-Expected Sell Volume: ${expectedSellVolume.toFixed(4)} SOL
-Expected Total Volume: ${expectedHourlyVolume.toFixed(4)} SOL
-Expected Net Volume: ${(expectedBuyVolume - expectedSellVolume).toFixed(4)} SOL
-Pubkey: ${this.payer.publicKey.toString()}
-    `)
-    const printHourlyStats = () => {
-        const hoursSinceStart = (Date.now() - startTime) / (1000 * 60 * 60)
-        const tradesPerHour = tradeCount / hoursSinceStart
-        const realVolumePerHour = totalRealVolume / hoursSinceStart
-        const netVolumePerHour = totalNetVolume / hoursSinceStart
-        this.log(`
-=== Hourly Statistics Update ===
-Time Running: ${hoursSinceStart.toFixed(2)} hours
-Trades Per Hour: ${tradesPerHour.toFixed(1)}
-- Buys: ${(buyCount / hoursSinceStart).toFixed(1)}/hour
-- Sells: ${(sellCount / hoursSinceStart).toFixed(1)}/hour
-Volume Per Hour:
-- Real Volume: ${realVolumePerHour.toFixed(4)} SOL/hour
-- Net Volume: ${netVolumePerHour.toFixed(4)} SOL/hour
-Total Stats:
-- Total Trades: ${tradeCount} (${buyCount} buys, ${sellCount} sells)
-- Total Real Volume: ${totalRealVolume.toFixed(4)} SOL
-- Total Net Volume: ${totalNetVolume.toFixed(4)} SOL
-================================
-        `)
-    }
+
+    console.log(`
+=== Volume Bot Configuration ===
+Token: ${mint.toString()}
+Wallet: ${this.payer.publicKey.toString()}
+SOL Balance: ${solBalance.toFixed(4)} SOL
+
+Parameters:
+• Speed Factor: ${speedFactor}x
+• Market Cap Factor: ${mCapFactor}x
+• Min SOL/Swap: ${minSolAmount} SOL
+• Max SOL/Swap: ${maxSolAmount} SOL
+• Jito Tip: ${jitoTipLamports/1e9} SOL
+${includeDexes.length > 0 ? `• Enabled DEXes: ${includeDexes.join(", ")}` : '• Using all available DEXes'}
+
+Hourly Projections:
+• Expected Swaps: ${expectedSwapsPerHour.toFixed(0)}
+• Expected Volume: ${expectedHourlyVolume.toFixed(4)} SOL
+• Expected Net Volume: ${(expectedBuyVolume - expectedSellVolume).toFixed(4)} SOL
+• Average Delay: ${avgDelaySeconds.toFixed(1)} seconds
+===========================
+`)
+
+    let totalNetVolume = 0
+    let totalRealVolume = 0
+    let tradesUntilNextSell = Math.floor(Math.random() * 3) + 1
+    let startTime = Date.now()
+    let tradeCount = 0
+
     while (true) {
         try {
-            const now = Date.now()
-            if (now - lastHourlyUpdate >= 3600000) {
-                printHourlyStats()
-                lastHourlyUpdate = now
-			}
-            if (now - lastBlockhashRefresh > 3000) {
-                blockhash = (await this.connection.getLatestBlockhash("finalized")).blockhash
-                lastBlockhashRefresh = now
-            }
+            blockhash = (await this.connection.getLatestBlockhash("finalized")).blockhash
             const signer = Keypair.generate()
-            let direction = "buy"
+
+            const shouldSell = (tradesUntilNextSell <= 0 || Math.random() < 0.3) && totalNetVolume > 0
+            let direction = shouldSell ? "sell" : "buy"
             let amount
-            if ((tradesUntilNextSell <= 0 || Math.random() < 0.3) && totalNetVolume > 0) {
-                direction = "sell"
+
+            if (shouldSell) {
                 const maxSellPercentage = 1 / mCapFactor
                 const sellPercentage = 0.5 + (Math.random() * 0.5 * maxSellPercentage)
                 amount = Math.floor(totalNetVolume * sellPercentage * 1000000000)
                 tradesUntilNextSell = Math.floor(Math.random() * 3) + 1
-                this.log(`
-Preparing SELL:
-Selling ${(sellPercentage * 100).toFixed(1)}% of net volume
-Sell Amount: ${(amount/1000000000).toFixed(4)} SOL
-Net Volume: ${totalNetVolume.toFixed(4)} SOL
-Total Real Volume: ${totalRealVolume.toFixed(4)} SOL
-                `)
             } else {
-                direction = "buy"
                 amount = Math.floor(
                     (Math.random() * (maxSolAmount - minSolAmount) + minSolAmount)
                     * 1000000000
                 )
                 tradesUntilNextSell--
-                this.log(`
-Preparing BUY:
-Buy Amount: ${(amount/1000000000).toFixed(4)} SOL
-                `)
             }
+
             const fundTx = await this.createFundSingleTx(signer, jitoTipLamports, blockhash)
-            const swapTx = await this.swapVolume(direction, mint, amount, blockhash, signer, excludes)
+            const swapTx = await this.swapVolume(direction, mint, amount, blockhash, signer, dexes)
             const bundle = await sendBundle([
                 bs58.encode(fundTx.serialize()),
                 bs58.encode(swapTx.serialize())
             ], getRandomJitoUrl())
+
             if (bundle && bundle.result) {
                 const solAmount = amount / 1000000000
                 tradeCount++
                 if (direction === "buy") {
                     totalNetVolume += solAmount
-                    buyCount++
                 } else {
                     totalNetVolume -= solAmount
-                    sellCount++
                 }
                 totalRealVolume += solAmount
-                const tokenBalance = await this.getTokenBalance(mint)
-                const solBalance = await this.getSolBalance()
-                this.log(`
-Trade Complete:
-Direction: ${direction}
-Amount: ${solAmount.toFixed(4)} SOL
-Net Volume: ${totalNetVolume.toFixed(4)} SOL
-Total Real Volume: ${totalRealVolume.toFixed(4)} SOL
-Trades until next sell: ${tradesUntilNextSell}
-Bundle ID: ${bundle.result}
-Token Balance: ${tokenBalance.toFixed(4)}
-SOL Balance: ${solBalance.toFixed(4)} SOL
-                `)
-            } else {
-                this.log("Bundle failed to land:", bundle)
+
+                const runTime = ((Date.now() - startTime) / (1000 * 60)).toFixed(1)
+                const currentSolBalance = await this.getSolBalance()
+                console.log(`
+[${new Date().toLocaleTimeString()}] Trade #${tradeCount}
+• Direction: ${direction.toUpperCase()}
+• Amount: ${solAmount.toFixed(4)} SOL
+• Net Volume: ${totalNetVolume.toFixed(4)} SOL
+• Total Volume: ${totalRealVolume.toFixed(4)} SOL
+• SOL Balance: ${currentSolBalance.toFixed(4)} SOL
+• Runtime: ${runTime} minutes
+• Bundle: ${bundle.result}`)
             }
+
             const baseDelay = 5000 + Math.random() * 10000
             const adjustedDelay = baseDelay / speedFactor
             await wait(adjustedDelay)
         } catch (err) {
-            console.error("Volume test error:", err)
+            console.error("Error:", err.message)
             await wait(5000)
         }
     }
 }
 
 async swap(mint, direction, amount, options = {}) {
-const includeDexes = options.includeDexes || []
-let dexes = [
-"Cropper",
-"Raydium",
-"Openbook",
-"Guacswap",
-"OpenBook V2",
-"Aldrin",
-"Meteora DLMM",
-"Saber (Decimals)",
-"Whirlpool",
-"StepN",
-"Dexlab",
-"Raydium CP",
-"Mercurial",
-"Lifinity V2",
-"Obric V2",
-"Meteora",
-"Phoenix",
-"Token Swap",
-"Helium Network",
-"Sanctum",
-"Moonshot",
-"Penguin",
-"Aldrin V2",
-"Orca V2",
-"Lifinity V1",
-"1DEX",
-"Cropper Legacy",
-"SolFi",
-"Oasis",
-"Saber",
-"Crema",
-"Pump.fun",
-"Raydium CLMM",
-"Bonkswap",
-"Perps",
-"Fox",
-"Saros",
-"Orca V1",
-"FluxBeam",
-"Invariant"]
-let excludes
-if (includeDexes.length > 0) {
-const filtered = dexes.filter(dex => !includeDexes.includes(dex))
-excludes = `&excludeDexes=${filtered.join(",")}` }
-if (includeDexes.length === 0) { excludes = "" }
 const signer = Keypair.generate()
 if (!blockhash) { await this.initializeBlockhash() }
 let jitoTipLamports = options.jitoTipLamports || 0.001 * 10 ** 9
 try {
 const fundTx = await this.createFundSingleTx(signer, jitoTipLamports, blockhash)
-const swapIx = await this.swapVolume(direction, mint, amount * 10 ** 9, blockhash, signer, excludes)
+const swapIx = await this.swapVolume(direction, mint, amount * 10 ** 9, blockhash, signer)
 const send = await sendBundle([ bs58.encode(fundTx.serialize()), bs58.encode(swapIx.serialize()) ], getRandomJitoUrl())
 return } catch (E) {
 throw E } }
